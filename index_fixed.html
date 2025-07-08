@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Weather App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background-image 0.5s ease-in-out;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    h2 {
+      text-align: center;
+      color: #1976d2;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #weatherResult, #forecast {
+      margin-top: 20px;
+    }
+    .forecast-day {
+      background: #e3f2fd;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 8px;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🌤️ Smart Weather App</h2>
+    <input type="text" id="cityInput" placeholder="Enter city name (e.g. Delhi)" />
+    <button onclick="getWeatherByCity()">Search Weather</button>
+    <button onclick="getWeatherByLocation()">📍 Auto Detect My Weather</button>
+    <div id="weatherResult"></div>
+    <div id="forecast"></div>
+  </div>
+  <footer>Made with ❤️ for India</footer>
+
+<script>
+const apiKey = "338ed4b5c14540fabcb113634250807";
+
+const backgrounds = {
+  Clear: "url('https://i.imgur.com/fL6pKqO.jpg')",
+  Clouds: "url('https://i.imgur.com/2lK7KkV.jpg')",
+  Rain: "url('https://i.imgur.com/SjB4vlz.jpg')",
+  Drizzle: "url('https://i.imgur.com/SjB4vlz.jpg')",
+  Thunderstorm: "url('https://i.imgur.com/4Y9Rm8I.jpg')",
+  Snow: "url('https://i.imgur.com/XZxZIx8.jpg')",
+  Mist: "url('https://i.imgur.com/tX9F0kp.jpg')",
+  Haze: "url('https://i.imgur.com/tX9F0kp.jpg')",
+  Fog: "url('https://i.imgur.com/tX9F0kp.jpg')"
+};
+
+function updateBackground(weatherMain) {
+  document.body.style.backgroundImage = backgrounds[weatherMain] || "url('https://i.imgur.com/fL6pKqO.jpg')";
+}
+
+function getWeatherByCity() {
+  const city = document.getElementById("cityInput").value.trim();
+  if (!city) return alert("Please enter a city name");
+  fetchWeatherData(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`);
+  fetchForecast(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`);
+}
+
+function getWeatherByLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      fetchWeatherData(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
+      fetchForecast(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
+    }, () => {
+      alert("Location access denied.");
+    });
+  } else {
+    alert("Geolocation not supported.");
+  }
+}
+
+function fetchWeatherData(url) {
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (data.cod === 200) {
+        const mainWeather = data.weather[0].main;
+        updateBackground(mainWeather);
+        document.getElementById("weatherResult").innerHTML = `
+          <h3>${data.name}, ${data.sys.country}</h3>
+          <p><strong>Temperature:</strong> ${data.main.temp} °C</p>
+          <p><strong>Weather:</strong> ${data.weather[0].description}</p>
+          <p><strong>Humidity:</strong> ${data.main.humidity}%</p>
+          <p><strong>Wind Speed:</strong> ${data.wind.speed} m/s</p>
+        `;
+      } else {
+        document.getElementById("weatherResult").innerHTML = "<p>Weather data not found.</p>";
+      }
+    })
+    .catch(() => {
+      document.getElementById("weatherResult").innerHTML = "<p>Error loading weather data.</p>";
+    });
+}
+
+function fetchForecast(url) {
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (data.cod === "200") {
+        let forecastHTML = "<h3>7-Day Forecast</h3>";
+        const daily = {};
+        data.list.forEach(entry => {
+          const date = entry.dt_txt.split(" ")[0];
+          if (!daily[date]) {
+            daily[date] = entry;
+          }
+        });
+
+        Object.keys(daily).slice(0, 7).forEach(date => {
+          const entry = daily[date];
+          forecastHTML += `
+            <div class="forecast-day">
+              <strong>${date}</strong><br>
+              Temp: ${entry.main.temp} °C<br>
+              ${entry.weather[0].description}
+            </div>
+          `;
+        });
+
+        document.getElementById("forecast").innerHTML = forecastHTML;
+      }
+    })
+    .catch(() => {
+      document.getElementById("forecast").innerHTML = "<p>Error loading forecast data.</p>";
+    });
+}
+</script>
+</body>
+</html>
